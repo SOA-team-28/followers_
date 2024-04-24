@@ -5,11 +5,11 @@ import (
 )
 
 var (
-	DB   *neo4j.Driver
-	Port = "8080"
+	DB   neo4j.Driver
+	Port = "8082"
 )
 
-func InitDB() (*neo4j.Driver, error) {
+func InitDB() (neo4j.Driver, error) {
 	uri := "neo4j+s://3091c5e3.databases.neo4j.io"
 	username := "neo4j"
 	password := "QEhW3bajhHfMd5gMG0Ho9oX_OTYx3QUNwvMHkcmcRtw"
@@ -19,7 +19,7 @@ func InitDB() (*neo4j.Driver, error) {
 		return nil, err
 	}
 
-	DB = &driver
+	DB = driver
 
 	return DB, nil
 }

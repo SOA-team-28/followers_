@@ -6,16 +6,25 @@ import (
 	"encoding/json"
 
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 type FollowerHandler struct {
-	followerService *service.FollowerService
+	service *service.FollowerService
 }
 
-func NewUserHandler(followerService *service.FollowerService) *FollowerHandler {
+func NewUserHandler(driver neo4j.Driver) *FollowerHandler {
+	followerService := service.NewFollowerService(driver)
 	return &FollowerHandler{
-		followerService: followerService,
+		service: followerService,
 	}
+}
+
+func (h *FollowerHandler) RegisterRoutes(router *mux.Router) {
+	router.HandleFunc("/follow", h.CreateUserHandler).Methods("POST")
+
 }
 
 func (uh *FollowerHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +35,7 @@ func (uh *FollowerHandler) CreateUserHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = uh.followerService.CreateUser(user)
+	err = uh.service.CreateUser(user)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
