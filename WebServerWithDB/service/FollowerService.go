@@ -32,3 +32,12 @@ func (us *FollowerService) GetById(id int) (model.Follower, error) {
 	}
 	return follower, err
 }
+
+func (us *FollowerService) UpdateUser(existingUserID int, newFollowerID int) error {
+	err := us.repo.UpdateUser(existingUserID, newFollowerID)
+	if err != nil {
+		// Ovde možete dodati dodatnu obradu greške ako je potrebno
+		return err
+	}
+	return nil
+}

@@ -103,3 +103,68 @@ func convertToIntSlice(interfaces []interface{}) []int {
 	}
 	return ints
 }
+func (ur *FollowerRepository) UpdateUser(existingUserID int, newFollowerID int) error {
+	session := ur.driver.NewSession(neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
+	defer session.Close()
+
+	_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+		result, err := transaction.Run(
+			"MATCH (f:Follower {id: $existingUserID}) SET f.followed = f.followed + $newFollowerID",
+			map[string]interface{}{
+				"existingUserID": existingUserID,
+				"newFollowerID":  newFollowerID,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Provera da li je ažuriranje uspešno izvršeno
+		summary, err := result.Consume()
+		if err != nil {
+			fmt.Println(summary)
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	//morala transakcija odvojeno
+	ur.UpdateFollowableUser(existingUserID, newFollowerID)
+
+	return err
+}
+func (ur *FollowerRepository) UpdateFollowableUser(existingUserID int, newFollowerID int) error {
+	session := ur.driver.NewSession(neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
+	defer session.Close()
+
+	_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+		result, err := transaction.Run(
+			"MATCH (f:Follower {id: $existingUserID}) SET f.followable = [x IN f.followable WHERE x <> $newFollowerID]",
+			map[string]interface{}{
+				"existingUserID": existingUserID,
+				"newFollowerID":  newFollowerID,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Provera da li je ažuriranje uspešno izvršeno
+		summary, err := result.Consume()
+		if err != nil {
+			fmt.Println(summary)
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	//morala transakcija odvojeno
+
+	return err
+}

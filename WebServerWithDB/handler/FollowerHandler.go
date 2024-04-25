@@ -26,6 +26,7 @@ func NewUserHandler(driver neo4j.Driver) *FollowerHandler {
 func (h *FollowerHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/follow", h.CreateUserHandler).Methods("POST")
 	router.HandleFunc("/getById/{id}", h.GetById).Methods("GET")
+	router.HandleFunc("/update/{existingUserID}/{newFollowerID}", h.UpdateUser).Methods("PUT")
 
 }
 
@@ -69,4 +70,27 @@ func (uh *FollowerHandler) GetById(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode follower data", http.StatusInternalServerError)
 		return
 	}
+}
+func (uh *FollowerHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	// Uzmi ID postojećeg pratioca i ID novog pratioca iz URL-a
+	vars := mux.Vars(r)
+	existingUserID, err := strconv.Atoi(vars["existingUserID"])
+	if err != nil {
+		http.Error(w, "Invalid existing user ID", http.StatusBadRequest)
+		return
+	}
+	newFollowerID, err := strconv.Atoi(vars["newFollowerID"])
+	if err != nil {
+		http.Error(w, "Invalid new follower ID", http.StatusBadRequest)
+		return
+	}
+
+	// Pozovi servis za ažuriranje objekta pratioca
+	err = uh.service.UpdateUser(existingUserID, newFollowerID)
+	if err != nil {
+		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
