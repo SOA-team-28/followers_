@@ -1,7 +1,7 @@
 package model
 
 type Follower struct {
-	Id         int
+	Id         int64
 	Followers  []int
 	Followable []int
 	Followed   []int

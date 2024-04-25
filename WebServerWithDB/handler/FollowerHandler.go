@@ -4,6 +4,7 @@ import (
 	"database-example/model"
 	"database-example/service"
 	"encoding/json"
+	"strconv"
 
 	"net/http"
 
@@ -24,6 +25,7 @@ func NewUserHandler(driver neo4j.Driver) *FollowerHandler {
 
 func (h *FollowerHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/follow", h.CreateUserHandler).Methods("POST")
+	router.HandleFunc("/getById/{id}", h.GetById).Methods("GET")
 
 }
 
@@ -42,4 +44,29 @@ func (uh *FollowerHandler) CreateUserHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (uh *FollowerHandler) GetById(w http.ResponseWriter, r *http.Request) {
+	// Uzmi ID Followera iz URL-a
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid follower ID", http.StatusBadRequest)
+		return
+	}
+
+	// Pozovi servis za dobavljanje Followera
+	follower, err := uh.service.GetById(id)
+	if err != nil {
+		http.Error(w, "Failed to get follower", http.StatusInternalServerError)
+		return
+	}
+
+	// Serijalizuj Followera u JSON format i pošalji kao odgovor
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(follower)
+	if err != nil {
+		http.Error(w, "Failed to encode follower data", http.StatusInternalServerError)
+		return
+	}
 }
