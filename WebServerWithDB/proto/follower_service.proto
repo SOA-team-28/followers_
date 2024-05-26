@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option go_package = "proto/followers";
+//komanda za pokretanje  protoc --go_out=./encounter --go_opt=paths=source_relative \
+ //  --go-grpc_out=./encounter --go-grpc_opt=paths=source_relative \
+ //   encounter_service.proto
+
+service FollowerService {
+    rpc GetFollower(GetFollowerRequest) returns (GetFollowerResponse) {}
+    rpc UpsertFollower(UpsertFollowerRequest) returns (UpsertFollowerResponse) {}
+    rpc DeleteFollower(DeleteFollowerRequest) returns (DeleteFollowerResponse) {}
+}
+
+message Follower {
+    int64 Id = 1;
+    repeated int32 Followers = 2;
+    repeated int32 Followable = 3;
+    repeated int32 Followed = 4;
+
+}
+
+
+
+message GetFollowerRequest {
+    int32 id = 1;
+}
+
+message GetFollowerResponse {
+    Follower follower = 1;
+}
+
+message UpsertFollowerRequest {
+    Follower follower = 1;
+}
+
+message UpsertFollowerResponse {
+    Follower follower = 1;
+}
+
+message DeleteFollowerRequest {
+    int32 id = 1;
+}
+
+message DeleteFollowerResponse {
+}

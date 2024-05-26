@@ -168,3 +168,19 @@ func (ur *FollowerRepository) UpdateFollowableUser(existingUserID int, newFollow
 
 	return err
 }
+func (ur *FollowerRepository) DeleteUser(id int) error {
+    session := ur.driver.NewSession(neo4j.SessionConfig{
+        AccessMode: neo4j.AccessModeWrite,
+    })
+    defer session.Close()
+
+    _, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+        _, err := transaction.Run(
+            "MATCH (f:Follower {id: $id}) DELETE f",
+            map[string]interface{}{"id": id},
+        )
+        return nil, err
+    })
+
+    return err
+}
