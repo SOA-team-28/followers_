@@ -12,7 +12,7 @@ import (
 	saga "database-example/saga"
 
 	"github.com/gorilla/mux"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 type FollowerHandler struct {
