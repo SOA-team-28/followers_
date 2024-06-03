@@ -6,42 +6,34 @@ import (
 	"database-example/handler"
 	"database-example/model"
 	follower_service "database-example/proto/follower"
+	"database-example/saga/nats"
 	"database-example/service"
 	"fmt"
-	"github.com/gorilla/mux"
+	"log"
+	"net"
+
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"log"
-	"net"
-	"net/http"
 )
 
 type Server struct {
 	follower_service.UnimplementedFollowerServiceServer
-	FollowerService *service.FollowerService
+	FollowerService  *service.FollowerService
+	commandPublisher *nats.Publisher
+	replySubscriber  *nats.Subscriber
 }
 
-func NewServer(driver neo4j.Driver) *Server {
-	follower_service := service.NewFollowerService(driver)
-	return &Server{
-		FollowerService: follower_service,
-	}
-}
-func startServer() {
-	database, err := db.InitDB()
+func NewServer(driver neo4j.Driver, commandPublisher *nats.Publisher, replySubscriber *nats.Subscriber) *Server {
+	follower_service, err := service.NewFollowerService(driver, commandPublisher, replySubscriber)
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Fatal("Failed to create Sever:", err)
 	}
-
-	router := mux.NewRouter().StrictSlash(true)
-
-	followerHandler := handler.NewFollowerHandler(database)
-	followerHandler.RegisterRoutes(router)
-
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
-	log.Println("Server is running on port", db.Port)
-	log.Fatal(http.ListenAndServe(":8082", router))
+	return &Server{
+		FollowerService:  follower_service,
+		commandPublisher: commandPublisher,
+		replySubscriber:  replySubscriber,
+	}
 }
 
 func ConvertToIntSlice(int32Slice []int32) []int {
@@ -108,10 +100,31 @@ func main() {
 		log.Fatal("FAILED TO CONNECT TO NEO4J")
 	}
 	defer driver.Close()
+	host := "localhost"
+	port := "4222"
+	user := "user"
+	password := "password"
+	commandSubject := "LoginCommand"
+	//replySubject := "LoginReply"
+	queueGroup := "user-service"
 
+	replyPublisher, err := nats.NewNATSPublisher(host, port, user, password, commandSubject)
+	if err != nil {
+		panic(err)
+	}
+
+	commandSubscriber, err := nats.NewNATSSubscriber(host, port, user, password, "LoginReply", queueGroup)
+	if err != nil {
+		panic(err)
+	}
+
+	commandPublisherConverted := replyPublisher.(*nats.Publisher)
+	replySubscriberConverted := commandSubscriber.(*nats.Subscriber)
 	// Inicijalizacija servera
-	server := NewServer(driver)
+	server := NewServer(driver, commandPublisherConverted, replySubscriberConverted)
+	followerHandler := handler.NewFollowerHandler(driver, commandPublisherConverted, replySubscriberConverted)
 
+	log.Fatalf("handler: ", followerHandler)
 	// Inicijalizacija gRPC servera
 	grpcServer := grpc.NewServer()
 	follower_service.RegisterFollowerServiceServer(grpcServer, server)
@@ -129,7 +142,6 @@ func main() {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
-
 
 func (s *Server) DeleteFollower(ctx context.Context, req *follower_service.DeleteFollowerRequest) (*follower_service.DeleteFollowerResponse, error) {
 	err := s.FollowerService.DeleteFollower(int(req.Id))

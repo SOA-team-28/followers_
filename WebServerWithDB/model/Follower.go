@@ -1,10 +1,11 @@
 package model
 
 type Follower struct {
-	Id         int64
-	Followers  []int
-	Followable []int
-	Followed   []int
+	Id           int64
+	Followers    []int
+	Followable   []int
+	Followed     []int
+	ReportNumber int64
 }
 
 func (f *Follower) ConvertToIntSlice(int32Slice []int32) []int {

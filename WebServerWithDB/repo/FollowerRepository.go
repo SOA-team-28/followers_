@@ -25,12 +25,13 @@ func (ur *FollowerRepository) CreateUser(follower model.Follower) error {
 
 	_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 		_, err := transaction.Run(
-			"CREATE (f:Follower {id: $id, followers: $followers, followable: $followable, followed: $followed})",
+			"CREATE (f:Follower {id: $id, followers: $followers, followable: $followable, followed: $followed, reportNumber: $reportNumber})",
 			map[string]interface{}{
-				"id":         follower.Id,
-				"followers":  follower.Followers,
-				"followable": follower.Followable,
-				"followed":   follower.Followed,
+				"id":           follower.Id,
+				"followers":    follower.Followers,
+				"followable":   follower.Followable,
+				"followed":     follower.Followed,
+				"reportNumber": follower.ReportNumber,
 			},
 		)
 		return nil, err
@@ -48,7 +49,7 @@ func (ur *FollowerRepository) GetById(id int) (model.Follower, error) {
 
 	_, err := session.ReadTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 		result, err := transaction.Run(
-			"MATCH (f:Follower {id: $id}) RETURN f.id, f.followers, f.followable, f.followed",
+			"MATCH (f:Follower {id: $id}) RETURN f.id, f.followers, f.followable, f.followed, f.reportNumber",
 			map[string]interface{}{"id": id},
 		)
 		if err != nil {
@@ -65,17 +66,20 @@ func (ur *FollowerRepository) GetById(id int) (model.Follower, error) {
 			followers := convertToIntSlice(record.GetByIndex(1).([]interface{}))
 			followable := convertToIntSlice(record.GetByIndex(2).([]interface{}))
 			followed := convertToIntSlice(record.GetByIndex(3).([]interface{}))
+			reportNumber := record.GetByIndex(4).(int64)
 
 			follower := model.Follower{
-				Id:         id,
-				Followers:  followers,
-				Followable: followable,
-				Followed:   followed,
+				Id:           id,
+				Followers:    followers,
+				Followable:   followable,
+				Followed:     followed,
+				ReportNumber: reportNumber,
 			}
 			user.Id = id
 			user.Followable = followable
 			user.Followed = followed
 			user.Followers = followers
+			user.ReportNumber = reportNumber
 			fmt.Println("follower")
 			fmt.Println(follower)
 			return follower, nil
@@ -169,18 +173,18 @@ func (ur *FollowerRepository) UpdateFollowableUser(existingUserID int, newFollow
 	return err
 }
 func (ur *FollowerRepository) DeleteUser(id int) error {
-    session := ur.driver.NewSession(neo4j.SessionConfig{
-        AccessMode: neo4j.AccessModeWrite,
-    })
-    defer session.Close()
+	session := ur.driver.NewSession(neo4j.SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
+	defer session.Close()
 
-    _, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
-        _, err := transaction.Run(
-            "MATCH (f:Follower {id: $id}) DELETE f",
-            map[string]interface{}{"id": id},
-        )
-        return nil, err
-    })
+	_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+		_, err := transaction.Run(
+			"MATCH (f:Follower {id: $id}) DELETE f",
+			map[string]interface{}{"id": id},
+		)
+		return nil, err
+	})
 
-    return err
+	return err
 }

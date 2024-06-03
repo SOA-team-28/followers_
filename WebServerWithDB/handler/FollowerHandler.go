@@ -4,23 +4,35 @@ import (
 	"database-example/model"
 	"database-example/service"
 	"encoding/json"
+	"log"
 	"strconv"
 
 	"net/http"
 
+	saga "database-example/saga"
+
 	"github.com/gorilla/mux"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 )
 
 type FollowerHandler struct {
-	service *service.FollowerService
+	service           *service.FollowerService
+	replyPublisher    saga.Publisher
+	commandSubscriber saga.Subscriber
 }
 
-func NewFollowerHandler(driver neo4j.Driver) *FollowerHandler {
-	followerService := service.NewFollowerService(driver)
+func NewFollowerHandler(driver neo4j.Driver, publisher saga.Publisher, subscriber saga.Subscriber) *FollowerHandler {
+
+	followerService, err := service.NewFollowerService(driver, publisher, subscriber)
+
+	if err != nil {
+		log.Println("Error :", err)
+		return nil
+	}
 	return &FollowerHandler{
 		service: followerService,
 	}
+
 }
 
 func (h *FollowerHandler) RegisterRoutes(router *mux.Router) {

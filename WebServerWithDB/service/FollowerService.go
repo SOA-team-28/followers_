@@ -4,19 +4,36 @@ import (
 	"database-example/model"
 	"database-example/repo"
 	"fmt"
+	"log"
+
+	saga "database-example/saga"
+
+	events "database-example/saga/check_login"
 
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 type FollowerService struct {
-	repo *repo.FollowerRepository
+	repo              *repo.FollowerRepository
+	replyPublisher    saga.Publisher
+	commandSubscriber saga.Subscriber
 }
 
-func NewFollowerService(driver neo4j.Driver) *FollowerService {
+func NewFollowerService(driver neo4j.Driver, publisher saga.Publisher, subscriber saga.Subscriber) (*FollowerService, error) {
 	repo := repo.NewFollowerRepository(driver)
-	return &FollowerService{
-		repo: repo,
+	u := &FollowerService{
+		repo:              repo,
+		replyPublisher:    publisher,
+		commandSubscriber: subscriber,
 	}
+	log.Println("subsrciber u handleru:", u.commandSubscriber)
+	err := u.commandSubscriber.Subscribe(u.CheckLoginAvailability)
+
+	if err != nil {
+		log.Println("Error subscribing to commands:", err)
+		return nil, err
+	}
+	return u, nil
 }
 
 func (us *FollowerService) CreateFollower(follower model.Follower) error {
@@ -50,12 +67,28 @@ func (service *FollowerService) FindFollower(id int) (*model.Follower, error) {
 	return &user, nil
 }
 
-
 func (us *FollowerService) DeleteFollower(id int) error {
-    err := us.repo.DeleteUser(id)
-    if err != nil {
-        // Ovde možete dodati dodatnu obradu greške ako je potrebno
-        return err
-    }
-    return nil
+	err := us.repo.DeleteUser(id)
+	if err != nil {
+		// Ovde možete dodati dodatnu obradu greške ako je potrebno
+		return err
+	}
+	return nil
+}
+func (us *FollowerService) CheckLoginAvailability(command *events.LoginCommand) (model.Follower, error) {
+
+	fmt.Println("Usao u checklogin:", command)
+	reply := &events.LoginReply{}
+	follower, err := us.repo.GetById(command.Id)
+	if follower.ReportNumber > 3 {
+		reply.Type = events.CannotLogin
+	} else {
+		reply.Type = events.CanLogin
+	}
+	if err != nil {
+		fmt.Println("Error occurred:", err)
+	} else {
+		fmt.Println("Follower service retrieved:", follower)
+	}
+	return follower, err
 }
