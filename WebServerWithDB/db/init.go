@@ -10,7 +10,7 @@ var (
 )
 
 func InitDB() (neo4j.Driver, error) {
-	uri := "neo4j+s://d26caf33.databases.neo4j.io:7"
+	uri := "neo4j+s://d26caf33.databases.neo4j.io:7687"
 	username := "neo4j"
 	password := "BVCanBUL0zeBkauJBqd34ik0GmJwWvERXBPz-1Q_t18"
 

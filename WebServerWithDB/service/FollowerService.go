@@ -79,11 +79,25 @@ func (us *FollowerService) CheckLoginAvailability(command *events.LoginCommand) 
 
 	fmt.Println("Usao u checklogin:", command)
 	reply := &events.LoginReply{}
+
 	follower, err := us.repo.GetById(command.Id)
 	if follower.ReportNumber > 3 {
 		reply.Type = events.CannotLogin
+		reply.Id = int(follower.Id)
+		err := us.replyPublisher.Publish(reply)
+		if err != nil {
+			fmt.Printf("Failed to publish reply: %v\n", err)
+		}
+
+		fmt.Println("Reply published:", reply)
 	} else {
 		reply.Type = events.CanLogin
+		reply.Id = int(follower.Id)
+		err := us.replyPublisher.Publish(reply)
+		if err != nil {
+			fmt.Printf("Failed to publish reply: %v\n", err)
+		}
+		fmt.Println("Reply published:", reply)
 	}
 	if err != nil {
 		fmt.Println("Error occurred:", err)

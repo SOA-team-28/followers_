@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database-example/db"
-	"database-example/handler"
 	"database-example/model"
 	follower_service "database-example/proto/follower"
 	"database-example/saga/nats"
@@ -105,15 +104,15 @@ func main() {
 	user := "user"
 	password := "password"
 	commandSubject := "LoginCommand"
-	//replySubject := "LoginReply"
+	replySubject := "LoginReply"
 	queueGroup := "user-service"
 
-	replyPublisher, err := nats.NewNATSPublisher(host, port, user, password, commandSubject)
+	replyPublisher, err := nats.NewNATSPublisher(host, port, user, password, replySubject)
 	if err != nil {
 		panic(err)
 	}
 
-	commandSubscriber, err := nats.NewNATSSubscriber(host, port, user, password, "LoginReply", queueGroup)
+	commandSubscriber, err := nats.NewNATSSubscriber(host, port, user, password, commandSubject, queueGroup)
 	if err != nil {
 		panic(err)
 	}
@@ -122,9 +121,7 @@ func main() {
 	replySubscriberConverted := commandSubscriber.(*nats.Subscriber)
 	// Inicijalizacija servera
 	server := NewServer(driver, commandPublisherConverted, replySubscriberConverted)
-	followerHandler := handler.NewFollowerHandler(driver, commandPublisherConverted, replySubscriberConverted)
 
-	log.Fatalf("handler: ", followerHandler)
 	// Inicijalizacija gRPC servera
 	grpcServer := grpc.NewServer()
 	follower_service.RegisterFollowerServiceServer(grpcServer, server)

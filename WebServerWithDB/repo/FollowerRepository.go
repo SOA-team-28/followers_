@@ -41,7 +41,7 @@ func (ur *FollowerRepository) CreateUser(follower model.Follower) error {
 }
 func (ur *FollowerRepository) GetById(id int) (model.Follower, error) {
 	var user model.Follower
-
+	fmt.Println("primljeni id", id)
 	session := ur.driver.NewSession(neo4j.SessionConfig{
 		AccessMode: neo4j.AccessModeRead,
 	})
@@ -53,6 +53,7 @@ func (ur *FollowerRepository) GetById(id int) (model.Follower, error) {
 			map[string]interface{}{"id": id},
 		)
 		if err != nil {
+			fmt.Println("greskaa")
 			return nil, err
 		}
 
